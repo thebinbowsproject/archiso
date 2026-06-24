@@ -1,0 +1,65 @@
+base
+linux
+linux-firmware
+linux-headers
+dkms
+
+# GPU
+xf86-video-vesa
+xf86-video-fbdev
+mesa
+xf86-video-ati
+xf86-video-amdgpu
+xf86-video-intel
+nvidia
+nvidia-open
+nvidia-utils
+
+# WiFi
+broadcom-wl-dkms
+networkmanager
+network-manager-applet
+
+# Ethernet
+r8168
+
+# Audio
+pipewire
+pipewire-alsa
+pipewire-pulse
+wireplumber
+alsa-utils
+
+# Bluetooth
+bluez
+bluez-utils
+
+# Input
+xf86-input-libinput
+xf86-input-synaptics
+
+# Storage
+ntfs-3g
+exfatprogs
+dosfstools
+usbutils
+
+# Desktop
+xorg-server
+xorg-xinit
+xfce4
+xfce4-goodies
+gtk2
+gtk-engine-murrine
+webkitgtk
+plymouth
+
+# Apps
+webkitgtk
+
+# System
+mbpfan
+parted
+arch-install-scripts
+grub
+efibootmgr

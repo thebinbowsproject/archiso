@@ -1,0 +1,41 @@
+name: Build Binbows 98 ISO
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:    # lets you trigger a build manually from the GitHub UI
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+      options: --privileged
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm archiso git
+
+      - name: Clone Chicago95
+        run: |
+          git clone https://github.com/grassmunk/Chicago95 /tmp/Chicago95
+          ls /tmp/Chicago95/Cursors/    # this will show the exact cursor dir name in the build log
+          cp -r /tmp/Chicago95/Theme/Chicago95 profile/airootfs/usr/share/themes/
+          cp -r /tmp/Chicago95/Icons/Chicago95 profile/airootfs/usr/share/icons/
+          # copy whichever cursor dir name shows up in the ls above
+          cp -r "/tmp/Chicago95/Cursors/$(ls /tmp/Chicago95/Cursors/ | head -1)" profile/airootfs/usr/share/icons/
+
+      - name: Build ISO
+        run: mkarchiso -v -o out/ profile/
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binbows98-iso
+          path: out/*.iso
+          retention-days: 7    # keeps it for a week before GitHub deletes it
