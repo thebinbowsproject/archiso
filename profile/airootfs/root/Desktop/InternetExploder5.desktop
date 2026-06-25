@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Internet Exploder 5
+Exec=/opt/binbows/ie5/ie5
+Icon=/opt/binbows/assets/ie5.png
+Type=Application
+Terminal=false

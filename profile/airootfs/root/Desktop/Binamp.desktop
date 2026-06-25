@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Binamp
+Exec=/opt/binbows/binamp/binamp
+Icon=/opt/binbows/assets/binamp.png
+Type=Application
+Terminal=false

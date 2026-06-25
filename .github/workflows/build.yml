@@ -30,6 +30,15 @@ jobs:
           # copy whichever cursor dir name shows up in the ls above
           cp -r "/tmp/Chicago95/Cursors/$(ls /tmp/Chicago95/Cursors/ | head -1)" profile/airootfs/usr/share/icons/
 
+      - name: Install build dependencies
+        run: pacman -S --noconfirm gcc pkg-config webkit2gtk
+
+      - name: Build Netstay
+        run: |
+    cd profile/airootfs/opt/binbows/netstay
+    make
+    rm netstay.c Makefile    # don't need source in the ISO
+
       - name: Build ISO
         run: mkarchiso -v -o out/ profile/
 

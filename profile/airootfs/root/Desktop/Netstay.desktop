@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Netstay
+Exec=/opt/binbows/netstay
+Icon=/opt/binbows/assets/netstay-logo.png
+Type=Application
+Terminal=false
