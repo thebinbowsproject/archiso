@@ -3,7 +3,7 @@ name: Build Binbows 98 ISO
 on:
   push:
     branches: [main]
-  workflow_dispatch:    # lets you trigger a build manually from the GitHub UI
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,25 +19,29 @@ jobs:
       - name: Install dependencies
         run: |
           pacman -Syu --noconfirm
-          pacman -S --noconfirm archiso git
+          pacman -S --noconfirm archiso git gcc pkg-config webkit2gtk gstreamer gst-plugins-base gst-plugins-good
 
       - name: Clone Chicago95
         run: |
           git clone https://github.com/grassmunk/Chicago95 /tmp/Chicago95
-          ls /tmp/Chicago95/Cursors/    # this will show the exact cursor dir name in the build log
+          echo "Cursor directories:"
+          ls /tmp/Chicago95/Cursors/
           cp -r /tmp/Chicago95/Theme/Chicago95 profile/airootfs/usr/share/themes/
           cp -r /tmp/Chicago95/Icons/Chicago95 profile/airootfs/usr/share/icons/
-          # copy whichever cursor dir name shows up in the ls above
-          cp -r "/tmp/Chicago95/Cursors/$(ls /tmp/Chicago95/Cursors/ | head -1)" profile/airootfs/usr/share/icons/
-
-      - name: Install build dependencies
-        run: pacman -S --noconfirm gcc pkg-config webkit2gtk
+          CURSOR_DIR=$(ls /tmp/Chicago95/Cursors/ | head -1)
+          cp -r "/tmp/Chicago95/Cursors/$CURSOR_DIR" profile/airootfs/usr/share/icons/
 
       - name: Build Netstay
         run: |
-    cd profile/airootfs/opt/binbows/netstay
-    make
-    rm netstay.c Makefile    # don't need source in the ISO
+          cd profile/airootfs/opt/binbows/netstay
+          make
+          rm -f netstay.c Makefile
+
+      - name: Build Binamp
+        run: |
+          cd profile/airootfs/opt/binbows/binamp
+          make
+          rm -f binamp.c Makefile
 
       - name: Build ISO
         run: mkarchiso -v -o out/ profile/
@@ -47,4 +51,4 @@ jobs:
         with:
           name: binbows98-iso
           path: out/*.iso
-          retention-days: 7    # keeps it for a week before GitHub deletes it
+          retention-days: 7
