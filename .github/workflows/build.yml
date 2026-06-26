@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           pacman -Syu --noconfirm
-          pacman -S --noconfirm archiso git gcc pkg-config webkit2gtk-4.1 gstreamer gst-plugins-base gst-plugins-good
+          pacman -S --noconfirm archiso git gcc pkg-config webkit2gtk-4.1 gstreamer gst-plugins-base gst-plugins-good base-devel
 
       - name: Clone Chicago95
         run: |
