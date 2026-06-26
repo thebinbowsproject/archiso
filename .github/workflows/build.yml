@@ -16,15 +16,38 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Set pacman mirror
+        run: |
+          echo 'Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch' > /etc/pacman.d/mirrorlist
+          echo 'Server = https://mirrors.kernel.org/archlinux/$repo/os/$arch' >> /etc/pacman.d/mirrorlist
+
       - name: Install dependencies
         run: |
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm base-devel archiso git webkit2gtk-4.1 gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad
+          for i in 1 2 3; do
+            pacman -Syu --noconfirm && \
+            pacman -S --noconfirm \
+              base-devel \
+              archiso \
+              git \
+              webkit2gtk-4.1 \
+              gstreamer \
+              gst-plugins-base \
+              gst-plugins-good \
+              gst-plugins-bad && \
+            break || sleep 15
+          done
+
+      - name: Merge releng base with custom profile
+        run: |
+          cp -r /usr/share/archiso/configs/releng/ base-profile/
+          cp -r base-profile/. profile/
+          echo "=== final profile structure ==="
+          find profile/ -not -path '*/Chicago95/*' -type f | sort
 
       - name: Clone Chicago95
         run: |
           git clone https://github.com/grassmunk/Chicago95 /tmp/Chicago95
-          echo "Cursor directories:"
+          echo "=== cursor directories ==="
           ls /tmp/Chicago95/Cursors/
           cp -r /tmp/Chicago95/Theme/Chicago95 profile/airootfs/usr/share/themes/
           cp -r /tmp/Chicago95/Icons/Chicago95 profile/airootfs/usr/share/icons/
@@ -42,22 +65,6 @@ jobs:
           cd profile/airootfs/opt/binbows/binamp
           make
           rm -f binamp.c Makefile
-
-      - name: Debug profiledef
-        run: |
-          echo "=== profiledef.sh contents ==="
-          cat profile/profiledef.sh
-          echo "=== airootfs structure ==="
-          ls profile/airootfs/
-
-      - name: Debug build environment
-        run: |
-          echo "=== mkarchiso version ==="
-          mkarchiso --version
-          echo "=== full profile directory ==="
-          find profile/ -type f | sort
-          echo "=== packages.x86_64 first 5 lines ==="
-          head -5 profile/packages.x86_64
 
       - name: Build ISO
         run: |
