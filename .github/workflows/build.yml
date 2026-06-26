@@ -44,7 +44,9 @@ jobs:
           rm -f binamp.c Makefile
 
       - name: Build ISO
-        run: mkarchiso -v -o out/ profile/
+        run: |
+          mkdir -p out/
+          mkarchiso -v -o out/ profile/
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
