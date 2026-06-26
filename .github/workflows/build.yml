@@ -43,6 +43,13 @@ jobs:
           make
           rm -f binamp.c Makefile
 
+      - name: Debug profiledef
+        run: |
+          echo "=== profiledef.sh contents ==="
+          cat profile/profiledef.sh
+          echo "=== airootfs structure ==="
+          ls profile/airootfs/
+
       - name: Build ISO
         run: |
           mkdir -p out/
