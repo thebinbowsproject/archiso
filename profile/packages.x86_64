@@ -56,7 +56,8 @@ plymouth
 
 # Apps
 webkitgtk
-webkit2gtk
+webkit2gtk-4.1
+base-devel
 
 # System
 mbpfan
