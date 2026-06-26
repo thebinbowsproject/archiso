@@ -57,6 +57,10 @@ plymouth
 # Apps
 webkitgtk
 webkit2gtk-4.1
+gstreamer
+gst-plugins-base
+gst-plugins-good
+gst-plugins-bad
 
 # System
 mbpfan
