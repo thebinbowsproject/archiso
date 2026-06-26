@@ -50,6 +50,15 @@ jobs:
           echo "=== airootfs structure ==="
           ls profile/airootfs/
 
+      - name: Debug build environment
+        run: |
+          echo "=== mkarchiso version ==="
+          mkarchiso --version
+          echo "=== full profile directory ==="
+          find profile/ -type f | sort
+          echo "=== packages.x86_64 first 5 lines ==="
+          head -5 profile/packages.x86_64
+
       - name: Build ISO
         run: |
           mkdir -p out/
