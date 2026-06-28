@@ -11,6 +11,8 @@ airootfs_image_tool_options=('-comp' 'xz' '-Xbcj' 'x86' '-b' '1M' '-Xdict-size' 
 file_permissions=(
   ["/etc/shadow"]="0:0:400"
   ["/usr/local/bin/binbows-start"]="0:0:755"
+  ["/usr/local/bin/binbows-install"]="0:0:755"
+  ["/usr/local/bin/binbows-installer"]="0:0:755"
   ["/opt/binbows/netstay/netstay"]="0:0:755"
   ["/opt/binbows/binamp/binamp"]="0:0:755"
 )

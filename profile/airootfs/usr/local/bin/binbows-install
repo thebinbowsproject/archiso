@@ -1,0 +1,242 @@
+#!/bin/bash
+# binbows-install
+# Called by the GTK installer as: binbows-install /dev/sdX
+# Outputs PROGRESS:0.0-1.0 and LOG:message lines for the UI to parse.
+
+set -e
+
+DISK="$1"
+TARGET=/mnt/binbows-install
+
+progress() { echo "PROGRESS:$1"; }
+log()      { echo "LOG:$2";      }
+
+# ── Sanity checks ────────────────────────────────────────────────
+
+if [ -z "$DISK" ]; then
+    log 0 "ERROR: No disk specified."
+    exit 1
+fi
+
+if [ ! -b "$DISK" ]; then
+    log 0 "ERROR: $DISK is not a block device."
+    exit 1
+fi
+
+# Refuse to install onto the live USB itself
+LIVE_DEV=$(findmnt -n -o SOURCE / | sed 's/[0-9]*$//')
+if [ "$DISK" = "$LIVE_DEV" ]; then
+    log 0 "ERROR: Cannot install onto the live boot device ($LIVE_DEV)."
+    exit 1
+fi
+
+# ── Partition ────────────────────────────────────────────────────
+
+log 0.02 "Partitioning $DISK..."
+progress 0.02
+
+# Wipe any existing partition table
+wipefs -a "$DISK" > /dev/null 2>&1 || true
+
+parted -s "$DISK" mklabel gpt
+parted -s "$DISK" mkpart ESP fat32 1MiB 513MiB
+parted -s "$DISK" set 1 esp on
+parted -s "$DISK" mkpart primary ext4 513MiB 100%
+
+# Give the kernel a moment to see the new partitions
+sleep 2
+partprobe "$DISK"
+sleep 1
+
+# Derive partition names (handles both /dev/sda and /dev/nvme0n1)
+if echo "$DISK" | grep -q "nvme"; then
+    PART1="${DISK}p1"
+    PART2="${DISK}p2"
+else
+    PART1="${DISK}1"
+    PART2="${DISK}2"
+fi
+
+# ── Format ───────────────────────────────────────────────────────
+
+progress 0.08
+log 0.08 "Formatting EFI partition ($PART1)..."
+mkfs.fat -F32 "$PART1" > /dev/null 2>&1
+
+log 0.10 "Formatting root partition ($PART2)..."
+mkfs.ext4 -F "$PART2" > /dev/null 2>&1
+
+# ── Mount ────────────────────────────────────────────────────────
+
+progress 0.12
+log 0.12 "Mounting partitions..."
+mkdir -p "$TARGET"
+mount "$PART2" "$TARGET"
+mkdir -p "$TARGET/boot"
+mount "$PART1" "$TARGET/boot"
+
+# ── pacstrap ─────────────────────────────────────────────────────
+
+progress 0.15
+log 0.15 "Installing base system (this will take a while)..."
+
+pacstrap -K "$TARGET" \
+    base \
+    linux \
+    linux-firmware \
+    linux-headers \
+    networkmanager \
+    network-manager-applet \
+    mesa \
+    xorg-server \
+    xorg-xinit \
+    xfce4 \
+    xfce4-goodies \
+    gtk2 \
+    gtk-engine-murrine \
+    webkit2gtk-4.1 \
+    gstreamer \
+    gst-plugins-base \
+    gst-plugins-good \
+    gst-plugins-bad \
+    xf86-video-vesa \
+    xf86-video-fbdev \
+    xf86-video-ati \
+    xf86-video-amdgpu \
+    xf86-video-intel \
+    xf86-input-libinput \
+    xf86-input-synaptics \
+    broadcom-wl-dkms \
+    ntfs-3g \
+    exfatprogs \
+    dosfstools \
+    grub \
+    efibootmgr \
+    mbpfan \
+    pipewire \
+    pipewire-alsa \
+    pipewire-pulse \
+    wireplumber \
+    alsa-utils \
+    bluez \
+    bluez-utils \
+    2>&1 | while IFS= read -r line; do
+        echo "LOG:$line"
+    done
+
+progress 0.70
+log 0.70 "Base system installed."
+
+# ── fstab ────────────────────────────────────────────────────────
+
+progress 0.72
+log 0.72 "Generating fstab..."
+genfstab -U "$TARGET" >> "$TARGET/etc/fstab"
+
+# ── Copy Binbows files ────────────────────────────────────────────
+
+progress 0.75
+log 0.75 "Copying Binbows 98 files..."
+
+# Apps
+mkdir -p "$TARGET/opt/binbows"
+cp -r /opt/binbows/. "$TARGET/opt/binbows/"
+
+# Chicago95 theme
+mkdir -p "$TARGET/usr/share/themes"
+mkdir -p "$TARGET/usr/share/icons"
+cp -r /usr/share/themes/Chicago95  "$TARGET/usr/share/themes/" 2>/dev/null || true
+cp -r /usr/share/icons/Chicago95   "$TARGET/usr/share/icons/"  2>/dev/null || true
+# Cursors (first Chicago95 cursor dir found)
+CURSOR_DIR=$(ls /usr/share/icons/ | grep -i chicago95 | grep -iv "^Chicago95$" | head -1)
+if [ -n "$CURSOR_DIR" ]; then
+    cp -r "/usr/share/icons/$CURSOR_DIR" "$TARGET/usr/share/icons/" 2>/dev/null || true
+fi
+
+# User config (XFCE, GTK settings, autostart)
+mkdir -p "$TARGET/root"
+cp -r /root/.config        "$TARGET/root/" 2>/dev/null || true
+cp    /root/.bash_profile  "$TARGET/root/" 2>/dev/null || true
+cp    /root/.gtkrc-2.0     "$TARGET/root/" 2>/dev/null || true
+cp -r /etc/gtk-3.0         "$TARGET/etc/"  2>/dev/null || true
+
+# Desktop files
+mkdir -p "$TARGET/root/Desktop"
+cp /root/Desktop/*.desktop "$TARGET/root/Desktop/" 2>/dev/null || true
+
+# Autostart scripts
+mkdir -p "$TARGET/usr/local/bin"
+cp /usr/local/bin/binbows-start "$TARGET/usr/local/bin/" 2>/dev/null || true
+chmod +x "$TARGET/usr/local/bin/binbows-start" 2>/dev/null || true
+
+# Autologin systemd override
+mkdir -p "$TARGET/etc/systemd/system/getty@tty1.service.d"
+cp /etc/systemd/system/getty@tty1.service.d/autologin.conf \
+   "$TARGET/etc/systemd/system/getty@tty1.service.d/" 2>/dev/null || true
+
+# ── Installed system .xinitrc launches KIOSK, not installer ──────
+
+progress 0.82
+log 0.82 "Configuring autostart..."
+
+cat > "$TARGET/root/.xinitrc" << 'EOF'
+#!/bin/bash
+exec startxfce4
+EOF
+
+# ── Chroot configuration ─────────────────────────────────────────
+
+progress 0.85
+log 0.85 "Configuring system..."
+
+arch-chroot "$TARGET" /bin/bash << 'CHROOT'
+# Locale
+echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+locale-gen > /dev/null 2>&1
+echo "LANG=en_US.UTF-8" > /etc/locale.conf
+
+# Hostname
+echo "binbows98" > /etc/hostname
+
+# Enable NetworkManager
+systemctl enable NetworkManager > /dev/null 2>&1
+
+# Enable mbpfan if present (MacBook fan control)
+systemctl enable mbpfan > /dev/null 2>&1 || true
+
+# Enable bluetooth
+systemctl enable bluetooth > /dev/null 2>&1 || true
+CHROOT
+
+# ── GRUB ─────────────────────────────────────────────────────────
+
+progress 0.90
+log 0.90 "Installing bootloader..."
+
+arch-chroot "$TARGET" grub-install \
+    --target=x86_64-efi \
+    --efi-directory=/boot \
+    --bootloader-id=Binbows98 \
+    > /dev/null 2>&1
+
+arch-chroot "$TARGET" grub-mkconfig \
+    -o /boot/grub/grub.cfg \
+    > /dev/null 2>&1
+
+# ── Fix permissions ───────────────────────────────────────────────
+
+progress 0.96
+log 0.96 "Setting permissions..."
+
+chmod +x "$TARGET/opt/binbows/netstay/netstay" 2>/dev/null || true
+chmod +x "$TARGET/opt/binbows/binamp/binamp"   2>/dev/null || true
+chmod +x "$TARGET/root/.xinitrc"               2>/dev/null || true
+
+# ── Unmount ───────────────────────────────────────────────────────
+
+progress 0.98
+log 0.98 "Finalising..."
+umount -R "$TARGET"
+
+progress 1.0
+log 1.0 "Done. Remove installation media and restart."

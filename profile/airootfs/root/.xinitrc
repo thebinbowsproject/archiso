@@ -1,2 +1,2 @@
 #!/bin/bash
-exec startxfce4
+exec /usr/local/bin/binbows-installer

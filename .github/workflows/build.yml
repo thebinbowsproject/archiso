@@ -66,6 +66,15 @@ jobs:
           make
           rm -f binamp.c Makefile
 
+      - name: Build installer
+        run: |
+          cd profile/airootfs/usr/local/bin
+          gcc -o binbows-installer binbows-installer.c \
+            $(pkg-config --cflags --libs gtk+-3.0)
+          chmod +x binbows-install
+          rm -f binbows-installer.c Makefile
+
+
       - name: Build ISO
         run: |
           mkdir -p out/
